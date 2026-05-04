@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Space Invaders Moderno</title>
+<style>
+    body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        color: white;
+    }
+
+    canvas {
+        display: block;
+        margin: auto;
+        background: radial-gradient(#000010, #000);
+    }
+
+    #score {
+        position: absolute;
+        top: 10px;
+        left: 20px;
+        font-size: 20px;
+    }
+</style>
+</head>
+<body>
+
+<div id="score">Score: 0</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 800;
+canvas.height = 600;
+
+let score = 0;
+
+// Player
+const player = {
+    x: canvas.width / 2 - 25,
+    y: canvas.height - 60,
+    width: 50,
+    height: 20,
+    speed: 6
+};
+
+// Bullets
+let bullets = [];
+
+// Enemies
+let enemies = [];
+let enemyDirection = 1;
+
+// Controls
+let keys = {};
+
+document.addEventListener("keydown", e => keys[e.code] = true);
+document.addEventListener("keyup", e => keys[e.code] = false);
+
+// Spawn enemies
+function createEnemies() {
+    enemies = [];
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 10; col++) {
+            enemies.push({
+                x: 60 + col * 60,
+                y: 50 + row * 50,
+                width: 40,
+                height: 30,
+                alive: true
+            });
+        }
+    }
+}
+
+// Draw player
+function drawPlayer() {
+    ctx.fillStyle = "#00ffcc";
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+}
+
+// Draw bullets
+function drawBullets() {
+    ctx.fillStyle = "yellow";
+    bullets.forEach((b, i) => {
+        b.y -= 8;
+        ctx.fillRect(b.x, b.y, 4, 10);
+
+        if (b.y < 0) bullets.splice(i, 1);
+    });
+}
+
+// Draw enemies
+function drawEnemies() {
+    ctx.fillStyle = "#ff3366";
+
+    let hitEdge = false;
+
+    enemies.forEach(enemy => {
+        if (!enemy.alive) return;
+
+        enemy.x += enemyDirection * 0.5;
+
+        if (enemy.x + enemy.width > canvas.width || enemy.x < 0) {
+            hitEdge = true;
+        }
+
+        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+    });
+
+    if (hitEdge) {
+        enemyDirection *= -1;
+        enemies.forEach(e => e.y += 20);
+    }
+}
+
+// Shooting
+function shoot() {
+    bullets.push({
+        x: player.x + player.width / 2 - 2,
+        y: player.y
+    });
+}
+
+// Collision detection
+function detectCollisions() {
+    bullets.forEach((b, bi) => {
+        enemies.forEach(enemy => {
+            if (!enemy.alive) return;
+
+            if (
+                b.x < enemy.x + enemy.width &&
+                b.x + 4 > enemy.x &&
+                b.y < enemy.y + enemy.height &&
+                b.y + 10 > enemy.y
+            ) {
+                enemy.alive = false;
+                bullets.splice(bi, 1);
+                score += 10;
+                document.getElementById("score").innerText = "Score: " + score;
+            }
+        });
+    });
+}
+
+// Update
+function update() {
+    // Move player
+    if (keys["ArrowLeft"] && player.x > 0) player.x -= player.speed;
+    if (keys["ArrowRight"] && player.x < canvas.width - player.width) player.x += player.speed;
+
+    // Shoot
+    if (keys["Space"]) {
+        if (!keys["SpacePressed"]) {
+            shoot();
+            keys["SpacePressed"] = true;
+        }
+    } else {
+        keys["SpacePressed"] = false;
+    }
+}
+
+// Game loop
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    update();
+    drawPlayer();
+    drawBullets();
+    drawEnemies();
+    detectCollisions();
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Start
+createEnemies();
+gameLoop();
+</script>
+
+</body>
+</html>
