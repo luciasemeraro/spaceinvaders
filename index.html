@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Space Invaders Moderno</title>
+<title>Space Invaders Bob Marley Edition</title>
 <style>
     body {
         margin: 0;
@@ -11,150 +11,156 @@
         font-family: Arial, sans-serif;
         color: white;
     }
-
     canvas {
         display: block;
         margin: auto;
         background: radial-gradient(#000010, #000);
     }
-
     #score {
         position: absolute;
         top: 10px;
         left: 20px;
-        font-size: 20px;
+        font-size: 24px;
+        z-index: 10;
     }
 </style>
 </head>
 <body>
-
 <div id="score">Score: 0</div>
 <canvas id="gameCanvas"></canvas>
 
 <script>
+// ====================== SETUP ======================
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-
 canvas.width = 800;
 canvas.height = 600;
 
 let score = 0;
+document.getElementById("score").innerText = "Score: " + score;
 
-// Player
+// ====================== PLAYER (Bob Marley PNG) ======================
+const playerImg = new Image();
+playerImg.src = "BOBBEMALLE.PNG";   // <-- Metti l'immagine nella stessa cartella
+
 const player = {
-    x: canvas.width / 2 - 25,
-    y: canvas.height - 60,
-    width: 50,
-    height: 20,
-    speed: 6
+    x: canvas.width / 2 - 32,
+    y: canvas.height - 80,
+    width: 64,
+    height: 64,
+    speed: 7
 };
 
-// Bullets
+// ====================== BULLETS (canne) ======================
 let bullets = [];
 
-// Enemies
+// ====================== ENEMIES (cibi) ======================
 let enemies = [];
-let enemyDirection = 1;
+const foods = ["🍔", "🍕", "🌮", "🍣", "🍦", "🍟", "🌭", "🍝", "🥗", "🍰"];
 
-// Controls
-let keys = {};
-
-document.addEventListener("keydown", e => keys[e.code] = true);
-document.addEventListener("keyup", e => keys[e.code] = false);
-
-// Spawn enemies
 function createEnemies() {
     enemies = [];
-    for (let row = 0; row < 4; row++) {
+    for (let row = 0; row < 5; row++) {
         for (let col = 0; col < 10; col++) {
             enemies.push({
-                x: 60 + col * 60,
-                y: 50 + row * 50,
-                width: 40,
-                height: 30,
-                alive: true
+                x: 60 + col * 65,
+                y: 40 + row * 55,
+                width: 50,
+                height: 50,
+                alive: true,
+                emoji: foods[Math.floor(Math.random() * foods.length)]
             });
         }
     }
 }
 
-// Draw player
+// ====================== DRAW FUNCTIONS ======================
 function drawPlayer() {
-    ctx.fillStyle = "#00ffcc";
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    if (playerImg.complete) {
+        ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+    } else {
+        // fallback mentre carica l'immagine
+        ctx.fillStyle = "#00ffcc";
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
 }
 
-// Draw bullets
 function drawBullets() {
-    ctx.fillStyle = "yellow";
+    ctx.fillStyle = "#00ff00";        // canne verdi
+    ctx.font = "20px Arial";
     bullets.forEach((b, i) => {
-        b.y -= 8;
-        ctx.fillRect(b.x, b.y, 4, 10);
-
+        b.y -= 9;
+        ctx.fillText("🌿", b.x - 8, b.y + 15);   // emoji canna
         if (b.y < 0) bullets.splice(i, 1);
     });
 }
 
-// Draw enemies
 function drawEnemies() {
-    ctx.fillStyle = "#ff3366";
-
+    ctx.font = "40px Arial";
     let hitEdge = false;
 
     enemies.forEach(enemy => {
         if (!enemy.alive) return;
 
-        enemy.x += enemyDirection * 0.5;
+        enemy.x += enemyDirection * 0.8;
 
-        if (enemy.x + enemy.width > canvas.width || enemy.x < 0) {
+        if (enemy.x + enemy.width > canvas.width - 30 || enemy.x < 10) {
             hitEdge = true;
         }
 
-        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        ctx.fillText(enemy.emoji, enemy.x, enemy.y + 40);
     });
 
     if (hitEdge) {
         enemyDirection *= -1;
-        enemies.forEach(e => e.y += 20);
+        enemies.forEach(e => e.y += 25);
     }
 }
 
-// Shooting
+// ====================== CONTROLS ======================
+let keys = {};
+let enemyDirection = 1;
+
+document.addEventListener("keydown", e => keys[e.code] = true);
+document.addEventListener("keyup", e => keys[e.code] = false);
+
 function shoot() {
     bullets.push({
-        x: player.x + player.width / 2 - 2,
-        y: player.y
+        x: player.x + player.width / 2 - 8,
+        y: player.y + 10
     });
 }
 
-// Collision detection
+// ====================== COLLISIONS ======================
 function detectCollisions() {
     bullets.forEach((b, bi) => {
-        enemies.forEach(enemy => {
-            if (!enemy.alive) return;
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const enemy = enemies[i];
+            if (!enemy.alive) continue;
 
             if (
                 b.x < enemy.x + enemy.width &&
-                b.x + 4 > enemy.x &&
+                b.x + 16 > enemy.x &&
                 b.y < enemy.y + enemy.height &&
-                b.y + 10 > enemy.y
+                b.y + 20 > enemy.y
             ) {
                 enemy.alive = false;
                 bullets.splice(bi, 1);
-                score += 10;
+                score += 20;
                 document.getElementById("score").innerText = "Score: " + score;
+                break;
             }
-        });
+        }
     });
 }
 
-// Update
+// ====================== GAME LOOP ======================
 function update() {
-    // Move player
+    // Movimento player
     if (keys["ArrowLeft"] && player.x > 0) player.x -= player.speed;
     if (keys["ArrowRight"] && player.x < canvas.width - player.width) player.x += player.speed;
 
-    // Shoot
+    // Sparo (con cooldown semplice)
     if (keys["Space"]) {
         if (!keys["SpacePressed"]) {
             shoot();
@@ -165,7 +171,6 @@ function update() {
     }
 }
 
-// Game loop
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -178,10 +183,17 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Start
-createEnemies();
-gameLoop();
-</script>
+// ====================== START ======================
+playerImg.onload = () => {
+    createEnemies();
+    gameLoop();
+};
 
+playerImg.onerror = () => {
+    alert("Immagine BOBBEMALLE.PNG non trovata! Mettila nella stessa cartella del file HTML.");
+    createEnemies();
+    gameLoop();
+};
+</script>
 </body>
 </html>
